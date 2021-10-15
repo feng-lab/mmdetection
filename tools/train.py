@@ -1,3 +1,4 @@
+# Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 import copy
 import os
@@ -159,6 +160,7 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
+    model.init_weights()
 
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:

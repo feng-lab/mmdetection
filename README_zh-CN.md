@@ -10,7 +10,7 @@
 
 [English](README.md) | 简体中文
 
-MMDetection 是一个基于 PyTorch 的目标检测开源工具箱。它是 OpenMMLab 项目的一部分，这个项目由香港中文大学多媒体实验室和商汤科技联合发起。
+MMDetection 是一个基于 PyTorch 的目标检测开源工具箱。它是 [OpenMMLab](https://openmmlab.com/) 项目的一部分。
 
 主分支代码目前支持 PyTorch 1.3 以上的版本。
 
@@ -44,9 +44,9 @@ v1.x 的历史版本支持 PyTorch 1.1 到 1.4，但是我们强烈建议用户�
 
 ## 更新日志
 
-最新的月度版本 v2.9.0 在 2021.02.01 发布。
+最新的月度版本 v2.17.0 在 2021.09.28 发布。
 如果想了解更多版本更新细节和历史信息，请阅读[更新日志](docs/changelog.md)。
-在[兼容性说明文档](docs/compatibility.md)中我们提供了 1.x 和 2.0 版本的详细比较。
+在[兼容性说明文档](docs_zh-CN/compatibility.md)中我们提供了 1.x 和 2.0 版本的详细比较。
 
 ## 基准测试和模型库
 
@@ -57,10 +57,14 @@ v1.x 的历史版本支持 PyTorch 1.1 到 1.4，但是我们强烈建议用户�
 - [x] ResNet (CVPR'2016)
 - [x] ResNeXt (CVPR'2017)
 - [x] VGG (ICLR'2015)
+- [x] MobileNetV2 (CVPR'2018)
 - [x] HRNet (CVPR'2019)
 - [x] RegNet (CVPR'2020)
 - [x] Res2Net (TPAMI'2020)
 - [x] ResNeSt (ArXiv'2020)
+- [X] Swin (CVPR'2021)
+- [x] PVT (ICCV'2021)
+- [x] PVTv2 (ArXiv'2021)
 
 已支持的算法：
 
@@ -99,7 +103,7 @@ v1.x 的历史版本支持 PyTorch 1.1 到 1.4，但是我们强烈建议用户�
 - [x] [Mixed Precision (FP16) Training (ArXiv'2017)](configs/fp16/README.md)
 - [x] [InstaBoost (ICCV'2019)](configs/instaboost/README.md)
 - [x] [GRoIE (ICPR'2020)](configs/groie/README.md)
-- [x] [DetectoRS (ArXix'2020)](configs/detectors/README.md)
+- [x] [DetectoRS (ArXiv'2020)](configs/detectors/README.md)
 - [x] [Generalized Focal Loss (NeurIPS'2020)](configs/gfl/README.md)
 - [x] [CornerNet (ECCV'2018)](configs/cornernet/README.md)
 - [x] [Side-Aware Boundary Localization (ECCV'2020)](configs/sabl/README.md)
@@ -107,10 +111,17 @@ v1.x 的历史版本支持 PyTorch 1.1 到 1.4，但是我们强烈建议用户�
 - [x] [PAA (ECCV'2020)](configs/paa/README.md)
 - [x] [YOLACT (ICCV'2019)](configs/yolact/README.md)
 - [x] [CentripetalNet (CVPR'2020)](configs/centripetalnet/README.md)
-- [x] [VFNet (ArXix'2020)](configs/vfnet/README.md)
+- [x] [VFNet (ArXiv'2020)](configs/vfnet/README.md)
 - [x] [DETR (ECCV'2020)](configs/detr/README.md)
+- [x] [Deformable DETR (ICLR'2021)](configs/deformable_detr/README.md)
 - [x] [CascadeRPN (NeurIPS'2019)](configs/cascade_rpn/README.md)
 - [x] [SCNet (AAAI'2021)](configs/scnet/README.md)
+- [x] [AutoAssign (ArXiv'2020)](configs/autoassign/README.md)
+- [x] [YOLOF (CVPR'2021)](configs/yolof/README.md)
+- [x] [Seasaw Loss (CVPR'2021)](configs/seesaw_loss/README.md)
+- [x] [CenterNet (CVPR'2019)](configs/centernet/README.md)
+- [x] [YOLOX (ArXiv'2021)](configs/yolox/README.md)
+- [x] [SOLO (ECCV'2020)](configs/solo/README.md)
 
 我们在[基于 MMDetection 的项目](./docs/projects.md)中列举了一些其他的支持的算法。
 
@@ -125,7 +136,7 @@ v1.x 的历史版本支持 PyTorch 1.1 到 1.4，但是我们强烈建议用户�
 
 我们也提供了一些进阶教程，内容覆盖了 [finetune 模型](docs/tutorials/finetune.md)，[增加新数据集支持](docs/tutorials/new_dataset.md)，[设计新的数据预处理流程](docs/tutorials/data_pipeline.md)，[增加自定义模型](ocs/tutorials/customize_models.md)，[增加自定义的运行时配置](docs/tutorials/customize_runtime.md)，[常用工具和脚本](docs/useful_tools.md)。
 
-如果遇到问题，请参考 [FAQ 页面](docs/faq.md)。
+如果遇到问题，请参考 [常见问题解答](docs_zh-CN/faq.md)。
 
 ## 贡献指南
 
@@ -156,6 +167,7 @@ MMDetection 是一款由来自不同高校和企业的研发人员共同参与�
 ## OpenMMLab 的其他项目
 
 - [MMCV](https://github.com/open-mmlab/mmcv): OpenMMLab 计算机视觉基础库
+- [MIM](https://github.com/open-mmlab/mim): MIM 是 OpenMMlab 项目、算法、模型的统一入口
 - [MMClassification](https://github.com/open-mmlab/mmclassification): OpenMMLab 图像分类工具箱
 - [MMDetection](https://github.com/open-mmlab/mmdetection): OpenMMLab 目标检测工具箱
 - [MMDetection3D](https://github.com/open-mmlab/mmdetection3d): OpenMMLab 新一代通用 3D 目标检测平台
@@ -164,3 +176,24 @@ MMDetection 是一款由来自不同高校和企业的研发人员共同参与�
 - [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab 一体化视频目标感知平台
 - [MMPose](https://github.com/open-mmlab/mmpose): OpenMMLab 姿态估计工具箱
 - [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab 图像视频编辑工具箱
+- [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab 全流程文字检测识别理解工具包
+- [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab 图片视频生成模型工具箱
+
+## 欢迎加入 OpenMMLab 社区
+
+扫描下方的二维码可关注 OpenMMLab 团队的 [知乎官方账号](https://www.zhihu.com/people/openmmlab)，加入 OpenMMLab 团队的 [官方交流 QQ 群](https://jq.qq.com/?_wv=1027&k=aCvMxdr3)
+
+<div align="center">
+<img src="/resources/zhihu_qrcode.jpg" height="400" />  <img src="/resources/qq_group_qrcode.jpg" height="400" />
+</div>
+
+我们会在 OpenMMLab 社区为大家
+
+- 📢 分享 AI 框架的前沿核心技术
+- 💻 解读 PyTorch 常用模块源码
+- 📰 发布 OpenMMLab 的相关新闻
+- 🚀 介绍 OpenMMLab 开发的前沿算法
+- 🏃 获取更高效的问题答疑和意见反馈
+- 🔥 提供与各行各业开发者充分交流的平台
+
+干货满满 📘，等你来撩 💗，OpenMMLab 社区期待您的加入 👬

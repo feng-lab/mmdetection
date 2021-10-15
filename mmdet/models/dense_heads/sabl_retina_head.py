@@ -1,7 +1,8 @@
+# Copyright (c) OpenMMLab. All rights reserved.
 import numpy as np
 import torch
 import torch.nn as nn
-from mmcv.cnn import ConvModule, bias_init_with_prob, normal_init
+from mmcv.cnn import ConvModule
 from mmcv.runner import force_fp32
 
 from mmdet.core import (build_anchor_generator, build_assigner,
@@ -9,11 +10,12 @@ from mmdet.core import (build_anchor_generator, build_assigner,
                         multi_apply, multiclass_nms, unmap)
 from ..builder import HEADS, build_loss
 from .base_dense_head import BaseDenseHead
+from .dense_test_mixins import BBoxTestMixin
 from .guided_anchor_head import GuidedAnchorHead
 
 
 @HEADS.register_module()
-class SABLRetinaHead(BaseDenseHead):
+class SABLRetinaHead(BaseDenseHead, BBoxTestMixin):
     """Side-Aware Boundary Localization (SABL) for RetinaNet.
 
     The anchor generation, assigning and sampling in SABLRetinaHead
@@ -43,6 +45,7 @@ class SABLRetinaHead(BaseDenseHead):
         loss_cls (dict): Config of classification loss.
         loss_bbox_cls (dict): Config of classification loss for bbox branch.
         loss_bbox_reg (dict): Config of regression loss for bbox branch.
+        init_cfg (dict or list[dict], optional): Initialization config dict.
     """
 
     def __init__(self,
@@ -81,8 +84,17 @@ class SABLRetinaHead(BaseDenseHead):
                      use_sigmoid=True,
                      loss_weight=1.5),
                  loss_bbox_reg=dict(
-                     type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.5)):
-        super(SABLRetinaHead, self).__init__()
+                     type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.5),
+                 init_cfg=dict(
+                     type='Normal',
+                     layer='Conv2d',
+                     std=0.01,
+                     override=dict(
+                         type='Normal',
+                         name='retina_cls',
+                         std=0.01,
+                         bias_prob=0.01))):
+        super(SABLRetinaHead, self).__init__(init_cfg)
         self.in_channels = in_channels
         self.num_classes = num_classes
         self.feat_channels = feat_channels
@@ -168,16 +180,6 @@ class SABLRetinaHead(BaseDenseHead):
             self.feat_channels, self.side_num * 4, 3, padding=1)
         self.retina_bbox_cls = nn.Conv2d(
             self.feat_channels, self.side_num * 4, 3, padding=1)
-
-    def init_weights(self):
-        for m in self.cls_convs:
-            normal_init(m.conv, std=0.01)
-        for m in self.reg_convs:
-            normal_init(m.conv, std=0.01)
-        bias_cls = bias_init_with_prob(0.01)
-        normal_init(self.retina_cls, std=0.01, bias=bias_cls)
-        normal_init(self.retina_bbox_reg, std=0.01)
-        normal_init(self.retina_bbox_cls, std=0.01)
 
     def forward_single(self, x):
         cls_feat = x
@@ -566,7 +568,7 @@ class SABLRetinaHead(BaseDenseHead):
         cfg = self.test_cfg if cfg is None else cfg
         mlvl_bboxes = []
         mlvl_scores = []
-        mlvl_confids = []
+        mlvl_confidences = []
         assert len(cls_scores) == len(bbox_cls_preds) == len(
             bbox_reg_preds) == len(mlvl_anchors)
         for cls_score, bbox_cls_pred, bbox_reg_pred, anchors in zip(
@@ -598,16 +600,16 @@ class SABLRetinaHead(BaseDenseHead):
                 bbox_cls_pred.contiguous(),
                 bbox_reg_pred.contiguous()
             ]
-            bboxes, confids = self.bbox_coder.decode(
+            bboxes, confidences = self.bbox_coder.decode(
                 anchors.contiguous(), bbox_preds, max_shape=img_shape)
             mlvl_bboxes.append(bboxes)
             mlvl_scores.append(scores)
-            mlvl_confids.append(confids)
+            mlvl_confidences.append(confidences)
         mlvl_bboxes = torch.cat(mlvl_bboxes)
         if rescale:
             mlvl_bboxes /= mlvl_bboxes.new_tensor(scale_factor)
         mlvl_scores = torch.cat(mlvl_scores)
-        mlvl_confids = torch.cat(mlvl_confids)
+        mlvl_confidences = torch.cat(mlvl_confidences)
         if self.use_sigmoid_cls:
             padding = mlvl_scores.new_zeros(mlvl_scores.shape[0], 1)
             mlvl_scores = torch.cat([mlvl_scores, padding], dim=1)
@@ -617,5 +619,5 @@ class SABLRetinaHead(BaseDenseHead):
             cfg.score_thr,
             cfg.nms,
             cfg.max_per_img,
-            score_factors=mlvl_confids)
+            score_factors=mlvl_confidences)
         return det_bboxes, det_labels
