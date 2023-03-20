@@ -9,10 +9,11 @@ import pytest
 import torch
 
 from mmdet.core.bbox.assigners import (ApproxMaxIoUAssigner,
+                                       AscendMaxIoUAssigner,
                                        CenterRegionAssigner, HungarianAssigner,
                                        MaskHungarianAssigner, MaxIoUAssigner,
-                                       PointAssigner, TaskAlignedAssigner,
-                                       UniformAssigner)
+                                       PointAssigner, SimOTAAssigner,
+                                       TaskAlignedAssigner, UniformAssigner)
 
 
 def test_max_iou_assigner():
@@ -402,6 +403,7 @@ def test_hungarian_match_assigner():
     gt_labels = torch.LongTensor([1, 20])
     assign_result = self.assign(bbox_pred, cls_pred, gt_bboxes, gt_labels,
                                 img_meta)
+
     assert torch.all(assign_result.gt_inds > -1)
     assert (assign_result.gt_inds > 0).sum() == gt_bboxes.size(0)
     assert (assign_result.labels > -1).sum() == gt_bboxes.size(0)
@@ -500,6 +502,21 @@ def test_uniform_assigner_with_empty_boxes():
     assert len(assign_result.gt_inds) == 0
 
 
+def test_sim_ota_assigner():
+    self = SimOTAAssigner(
+        center_radius=2.5, candidate_topk=1, iou_weight=3.0, cls_weight=1.0)
+    pred_scores = torch.FloatTensor([[0.2], [0.8]])
+    priors = torch.Tensor([[0, 12, 23, 34], [4, 5, 6, 7]])
+    decoded_bboxes = torch.Tensor([[[30, 40, 50, 60]], [[4, 5, 6, 7]]])
+    gt_bboxes = torch.Tensor([[23.6667, 23.8757, 238.6326, 151.8874]])
+    gt_labels = torch.LongTensor([2])
+    assign_result = self.assign(pred_scores, priors, decoded_bboxes, gt_bboxes,
+                                gt_labels)
+
+    expected_gt_inds = torch.LongTensor([0, 0])
+    assert torch.all(assign_result.gt_inds == expected_gt_inds)
+
+
 def test_task_aligned_assigner():
     with pytest.raises(AssertionError):
         TaskAlignedAssigner(topk=0)
@@ -560,7 +577,7 @@ def test_mask_hungarian_match_assigner():
     assert torch.all(assign_result.gt_inds == 0)
     assert torch.all(assign_result.labels == -1)
 
-    # test with gt masks
+    # test with gt masks of naive_dice is True
     gt_labels = torch.LongTensor([10, 100])
     gt_masks = torch.zeros((2, 50, 50)).long()
     gt_masks[0, :25] = 1
@@ -607,6 +624,23 @@ def test_mask_hungarian_match_assigner():
     assert (assign_result.gt_inds > 0).sum() == gt_labels.size(0)
     assert (assign_result.labels > -1).sum() == gt_labels.size(0)
 
+    # test with mask dice mode that naive_dice is False
+    assigner_cfg = dict(
+        cls_cost=dict(type='ClassificationCost', weight=0.0),
+        mask_cost=dict(type='FocalLossCost', weight=0.0, binary_input=True),
+        dice_cost=dict(
+            type='DiceCost',
+            weight=1.0,
+            pred_act=True,
+            eps=1.0,
+            naive_dice=False))
+    self = MaskHungarianAssigner(**assigner_cfg)
+    assign_result = self.assign(cls_pred, mask_pred, gt_labels, gt_masks,
+                                img_meta)
+    assert torch.all(assign_result.gt_inds > -1)
+    assert (assign_result.gt_inds > 0).sum() == gt_labels.size(0)
+    assert (assign_result.labels > -1).sum() == gt_labels.size(0)
+
     # test with mask bce mode
     assigner_cfg = dict(
         cls_cost=dict(type='ClassificationCost', weight=0.0),
@@ -628,3 +662,39 @@ def test_mask_hungarian_match_assigner():
         dice_cost=dict(type='DiceCost', weight=0.0, pred_act=True, eps=1.0))
     with pytest.raises(AssertionError):
         self = MaskHungarianAssigner(**assigner_cfg)
+
+
+def test_ascend_max_iou_assigner():
+    self = AscendMaxIoUAssigner(
+        pos_iou_thr=0.5,
+        neg_iou_thr=0.5,
+    )
+    batch_bboxes = torch.FloatTensor([[
+        [0, 0, 10, 10],
+        [10, 10, 20, 20],
+        [5, 5, 15, 15],
+        [32, 32, 38, 42],
+    ]])
+    batch_gt_bboxes = torch.FloatTensor([[
+        [0, 0, 10, 9],
+        [0, 10, 10, 19],
+    ]])
+    batch_gt_labels = torch.LongTensor([[2, 3]])
+    batch_bboxes_ignore_mask = torch.IntTensor([[1, 1, 1, 1]])
+    assign_result = self.assign(
+        batch_bboxes,
+        batch_gt_bboxes,
+        batch_gt_labels=batch_gt_labels,
+        batch_bboxes_ignore_mask=batch_bboxes_ignore_mask)
+
+    expected_batch_pos_mask = torch.IntTensor([1, 0, 1, 0])
+    expected_batch_anchor_gt_indes = torch.IntTensor([0, 0, 1, 0])
+    expected_batch_anchor_gt_labels = torch.IntTensor([2, 0, 3, 0])
+
+    assert torch.all(assign_result.batch_pos_mask == expected_batch_pos_mask)
+    assert torch.all(
+        assign_result.batch_anchor_gt_indes *
+        assign_result.batch_pos_mask == expected_batch_anchor_gt_indes)
+    assert torch.all(
+        assign_result.batch_anchor_gt_labels *
+        assign_result.batch_pos_mask == expected_batch_anchor_gt_labels)
